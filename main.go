@@ -96,7 +96,14 @@ func main() {
 	r := gin.Default()
 
 	// Configurar CORS
-	r.Use(cors.Default())
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{os.Getenv("VERCEL_URL"), "https://tu-proyecto.vercel.app"}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Custom-Header"}
+	config.AllowCredentials = true
+
+	// Usar CORS
+	r.Use(cors.New(config))
 
 	// Endpoint para generación de respuestas, usando multitarea
 	r.POST("/generate", func(c *gin.Context) {
