@@ -92,6 +92,9 @@ func main() {
 		}
 	}
 
+	// Modo release
+	gin.SetMode(gin.ReleaseMode)
+
 	// Configurar el router de Gin
 	r := gin.Default()
 
