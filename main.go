@@ -97,7 +97,7 @@ func main() {
 
 	// Configurar CORS
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{os.Getenv("VERCEL_URL"), "https://tu-proyecto.vercel.app"}
+	config.AllowOrigins = []string{"*"}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Custom-Header"}
 	config.AllowCredentials = true
