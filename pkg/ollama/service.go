@@ -2,9 +2,7 @@ package ollama
 
 import (
 	"fmt"
-	"time"
-
-	//"log"
+	"log"
 
 	"github.com/parakeet-nest/parakeet/completion"
 	"github.com/parakeet-nest/parakeet/enums/option"
@@ -21,6 +19,7 @@ const (
 type ModelConfig struct {
 	Path        string  `json:"path"`
 	Temperature float64 `json:"temperature"`
+	ID          int     `json:"id"`
 }
 
 // Service maneja la interacción con los modelos de Ollama
@@ -36,14 +35,17 @@ func NewService() *Service {
 			"qwen2.5": {
 				Path:        "hf.co/Ainxz/qwen2.5-pucv-gguf:latest",
 				Temperature: 0.4,
+				ID:          1,
 			},
 			"llama3.2": {
 				Path:        "hf.co/Ainxz/llama3.2-pucv-gguf:latest",
 				Temperature: 0.7,
+				ID:          2,
 			},
 			"phi3.5": {
 				Path:        "hf.co/Ainxz/phi3.5-pucv-gguf:latest",
 				Temperature: 0.6,
+				ID:          3,
 			},
 		},
 	}
@@ -51,16 +53,16 @@ func NewService() *Service {
 
 // OllamaData estructura para almacenar los datos de la interacción con Ollama
 type OllamaData struct {
-	Model              string    `json:"model"`
-	CreatedAt          time.Time `json:"created_at"`
-	Message            string    `json:"message"`
-	Done               bool      `json:"done"`
-	TotalDuration      int64     `json:"total_duration"`
-	LoadDuration       int       `json:"load_duration"`
-	PromptEvalCount    int       `json:"prompt_eval_count"`
-	PromptEvalDuration int       `json:"prompt_eval_duration"`
-	EvalCount          int       `json:"eval_count"`
-	EvalDuration       int64     `json:"eval_duration"`
+	Model              string `json:"model"`
+	ID                 int    `json:"id"`
+	Message            string `json:"message"`
+	Done               bool   `json:"done"`
+	TotalDuration      int64  `json:"total_duration"`
+	LoadDuration       int64  `json:"load_duration"`
+	PromptEvalCount    int64  `json:"prompt_eval_count"`
+	PromptEvalDuration int64  `json:"prompt_eval_duration"`
+	EvalCount          int64  `json:"eval_count"`
+	EvalDuration       int64  `json:"eval_duration"`
 }
 
 // GenerateResponse genera una respuesta usando el modelo especificado
@@ -69,6 +71,7 @@ func (s *Service) GenerateResponse(modelName, prompt string) (*OllamaData, error
 	// Verificar si el modelo existe
 	modelConfig, exists := s.validModels[modelName]
 	if !exists {
+		log.Fatalln("No existe el modelo")
 		return nil, fmt.Errorf("invalid model name: %s", modelName)
 	}
 
@@ -91,24 +94,24 @@ func (s *Service) GenerateResponse(modelName, prompt string) (*OllamaData, error
 	// Obtener la respuesta del modelo
 	answer, err := completion.Chat(OllamaEndpoint, query)
 	if err != nil {
+		log.Fatalln("Error :", err)
 		return nil, fmt.Errorf("error al obtener la respuesta de ollama %w", err)
 	}
 
+	// Data que ira a una DB
 	ollamaData := OllamaData{
 		Model:              answer.Model,
-		CreatedAt:          answer.CreatedAt,
+		ID:                 modelConfig.ID,
 		Message:            answer.Message.Content,
 		Done:               answer.Done,
 		TotalDuration:      answer.TotalDuration,
-		LoadDuration:       answer.LoadDuration,
-		PromptEvalCount:    answer.PromptEvalCount,
-		PromptEvalDuration: answer.PromptEvalCount,
-		EvalCount:          answer.EvalCount,
-		EvalDuration:       answer.EvalDuration,
+		LoadDuration:       int64(answer.LoadDuration),
+		PromptEvalCount:    int64(answer.PromptEvalCount),
+		PromptEvalDuration: int64(answer.PromptEvalCount),
+		EvalCount:          int64(answer.EvalCount),
+		EvalDuration:       int64(answer.EvalDuration),
 	}
-
 	// log.Printf("Datos (%%+v): %+v", ollamaData)
-
 	return &ollamaData, nil
 }
 

@@ -2,60 +2,43 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
-	"os"
-	"sync"
-	"time"
-
-	"ollama-backend/pkg/drive"
-	"ollama-backend/pkg/excel"
+	"ollama-backend/pkg/db"
 	"ollama-backend/pkg/ollama"
+	"sync"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-// =========== Struct para el metodo de Ollama ===============
+// =========== Struct para el metodo de Respuesta ===============
 
 // GenerateRequest estructura para las peticiones de generación
 type GenerateRequest struct {
 	Prompt string `json:"prompt"`
 }
 
-// Contenedor de la estructura de cada modelo
 type ModelResult struct {
-	Model              string    `json:"model"`
-	CreatedAt          time.Time `json:"created_at,omitempty"`
-	Message            string    `json:"message,omitempty"`
-	Done               bool      `json:"done,omitempty"`
-	TotalDuration      int64     `json:"total_duration,omitempty"`
-	LoadDuration       int       `json:"load_duration,omitempty"`
-	PromptEvalCount    int       `json:"prompt_eval_count,omitempty"`
-	PromptEvalDuration int       `json:"prompt_eval_duration,omitempty"`
-	EvalCount          int       `json:"eval_count,omitempty"`
-	EvalDuration       int64     `json:"eval_duration,omitempty"`
-	Error              string    `json:"error,omitempty"`
+	Model    string `json:"model"`
+	Response string `json:"response,omitempty"`
+	Error    string `json:"error,omitempty"`
+	ID       int64  `json:"id,omitempty"`
 }
 
 // Respuesta de ollama con multiples respuestas de multiples modelos
 type MultiResponse struct {
 	Status    int           `json:"status"`
-	Responses []ModelResult `json:"responses"`
+	Responses []ModelResult `json:"responses,omitempty"`
 }
 
 // ===========================================================
 
-// =========== Struct para el metodo drive y excel ===========
+// =========== Struct para el metodo de Resultado ===============
 
-// GenerateResponse estructura para las respuestas de generación
-type GenerateResponse struct {
-	Status  int      `json:"status"`
-	Content []string `json:"content"`
-}
-
-// ExcelRequest estructura para las peticiones de creación de Excel
-type ExcelRequest struct {
-	Interactions []excel.Interaction `json:"interactions"`
+type ResultadoResponse struct {
+	Status  int    `json:"status"`
+	Content string `json:"content"`
 }
 
 // ============================================================
@@ -70,40 +53,27 @@ type PongResponse struct {
 // ============================================================
 
 func main() {
-	// Crear directorio de salida para archivos Excel
-	outputDir := "output"
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		fmt.Printf("Error creating output directory: %v\n", err)
-		return
-	}
-
 	// Inicializar servicios
 	ollamaService := ollama.NewService()
-	excelService := excel.NewService(outputDir)
+	dbservice := db.NewService()
 
-	// Inicializar servicio de Google Drive si existe el archivo de credenciales
-	var driveService *drive.Service
-	credentialsFile := "credentials.json"
-	if _, err := os.Stat(credentialsFile); err == nil {
-		var err error
-		driveService, err = drive.NewService(credentialsFile)
-		if err != nil {
-			fmt.Printf("Error initializing Google Drive service: %v\n", err)
-		}
+	// Conexion con la base de datos
+	ctx, err := dbservice.ConnectDB()
+	if err != nil {
+		log.Fatalln("Error al conectar con la base de datos")
+		return
 	}
-
-	// Modo release
-	gin.SetMode(gin.ReleaseMode)
+	log.Println("Conectado con la base de datos......")
 
 	// Configurar el router de Gin
 	r := gin.Default()
 
 	// Configurar CORS
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"https://prototipo-te-ws1t.vercel.app/"}
+	config.AllowOrigins = []string{"*"}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Custom-Header"}
-	config.AllowCredentials = true
+	// config.AllowCredentials = true
 
 	// Usar CORS
 	r.Use(cors.New(config))
@@ -122,6 +92,9 @@ func main() {
 			return
 		}
 
+		// Imprimir el prompt
+		//log.Println(req.Prompt)
+
 		// Obtener los modelos desde el servicio
 		modelNames := ollamaService.GetModelNames()
 		if len(modelNames) == 0 {
@@ -139,7 +112,7 @@ func main() {
 		var wg sync.WaitGroup
 
 		// Canal para realizar la cantidad de request equivalente a la cantidad de modelos
-		resultsChan := make(chan ModelResult, len(modelNames))
+		resultsChan := make(chan db.Respuesta, len(modelNames))
 
 		// Recorrer cada modelo dentro de validModels
 		for _, modelNameCurrent := range modelNames {
@@ -157,22 +130,21 @@ func main() {
 
 				// Llamar al servicio de ollama
 				content, err := ollamaService.GenerateResponse(modelKeyName, currentPrompt)
-
-				result := ModelResult{Model: modelKeyName}
+				result := db.Respuesta{Model: modelKeyName}
 				if err != nil {
-					result.Error = err.Error()
+					log.Fatalln("Error: $w", err)
 				} else {
-					result.CreatedAt = content.CreatedAt
-					result.Message = content.Message
 					result.Done = content.Done
-					result.TotalDuration = content.TotalDuration
-					result.LoadDuration = content.LoadDuration
-					result.PromptEvalCount = content.PromptEvalCount
-					result.PromptEvalDuration = content.PromptEvalDuration
+					result.Model = content.Model
+					result.Message = content.Message
 					result.EvalCount = content.EvalCount
 					result.EvalDuration = content.EvalDuration
+					result.LoadDuration = content.LoadDuration
+					result.TotalDuration = content.TotalDuration
+					result.PromptEvalCount = content.PromptEvalCount
+					result.PromptEvalDuration = content.PromptEvalDuration
+					result.Modelo_id = content.ID
 				}
-
 				//fmt.Printf("\nTermino el modelo: %s\n", modelKeyName)
 				//fmt.Printf("\nModelo: %s ===> %s\n", modelKeyName, result.Content)
 
@@ -181,77 +153,83 @@ func main() {
 			}(modelNameCurrent, req.Prompt)
 		}
 
+		// Esperar a que terminen las goroutines
+		//log.Println("Esperando a que terminen las goroutines")
+
 		// Crear otra goroutine par cerrar los canales
 		go func() {
 			wg.Wait()
 			close(resultsChan)
 		}()
 
-		// Recolectar los resultados
-		var collectedResponses []ModelResult
+		// Obtener la lista en formato respuesta
+		var respuestas_struct []db.Respuesta
 		for res := range resultsChan {
-			collectedResponses = append(collectedResponses, res)
+			respuestas_struct = append(respuestas_struct, res)
 		}
 
+		// Imprimir el numero de respuestas
+		log.Println("Termino de obtener las respuestas")
+
+		// Recolectar los resultados
+		ids, err := dbservice.InsertRespuesta(ctx, &respuestas_struct)
+		if err != nil {
+			//log.Fatalln(err)
+			c.JSON(http.StatusConflict, MultiResponse{
+				Status:    http.StatusConflict,
+				Responses: []ModelResult{},
+			})
+			return
+		}
+
+		log.Println("Termino de insertar las respuestas")
+
+		// Obtener los valores para devolverlos
+		var multiResponse []ModelResult
+		for _, val := range ids.Modelos {
+			value := ModelResult{
+				Model:    val.Model,
+				Response: val.Message,
+				ID:       val.Id,
+			}
+			multiResponse = append(multiResponse, value)
+		}
+		log.Println("Termino de obtener los valores para devolver")
 		// Enviar los resultados
 		c.JSON(http.StatusOK, MultiResponse{
 			Status:    http.StatusOK,
-			Responses: collectedResponses,
+			Responses: multiResponse,
 		})
 	})
 
-	// Endpoint para creación de archivos Excel
-	r.POST("/excel", func(c *gin.Context) {
-		var req ExcelRequest
+	// Endpoint para guardar el resultado
+	r.POST("/save-result", func(c *gin.Context) {
+		var req db.Resultado
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"status":  400,
-				"message": "Invalid request format",
+			c.JSON(http.StatusBadRequest, ResultadoResponse{
+				Status:  http.StatusBadRequest,
+				Content: "Formato invalido",
 			})
 			return
 		}
 
-		// Crear archivo Excel
-		filepath, err := excelService.CreateExcelFile(req.Interactions)
+		err := dbservice.InsertResultado(ctx, &req)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"status":  500,
-				"message": fmt.Sprintf("Error creating Excel file: %v", err),
+			c.JSON(http.StatusConflict, ResultadoResponse{
+				Status:  http.StatusConflict,
+				Content: "Error al insertar el resultado",
 			})
 			return
 		}
 
-		// Intentar subir a Google Drive si el servicio está disponible
-		llmFolder, err := driveService.FindFolderIdByName("llm")
-		if err != nil {
-			fmt.Printf("Error finding folder: %v\n", err)
-			// Continuar solo con el archivo local
-		}
-
-		if driveService != nil {
-			fileId, err := driveService.UploadFile(filepath, llmFolder)
-			if err != nil {
-				fmt.Printf("Error uploading to Google Drive: %v\n", err)
-				// Continuar solo con el archivo local
-			} else {
-				c.JSON(http.StatusOK, gin.H{
-					"status":   200,
-					"message":  "File created and uploaded to Google Drive",
-					"filepath": filepath,
-					"fileId":   fileId,
-				})
-				return
-			}
-		}
-
-		// Retornar ruta del archivo local si la subida a Google Drive falló o no estaba disponible
-		c.JSON(http.StatusOK, gin.H{
-			"status":   200,
-			"message":  "File created locally",
-			"filepath": filepath,
+		c.JSON(http.StatusOK, ResultadoResponse{
+			Status:  http.StatusOK,
+			Content: "Resultado insertado correctamente",
 		})
+
 	})
 
+	// Para verificar si funciona el backend
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, PongResponse{
 			Status:  http.StatusOK,
