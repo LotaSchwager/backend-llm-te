@@ -19,13 +19,13 @@ type Service struct {
 	DbName   string
 }
 
-func NewService() *Service {
+func NewService(user *string, password *string, host *string, port *string, dbname *string) *Service {
 	return &Service{
-		User:     "root",
-		Password: "1234",
-		Host:     "localhost",
-		Port:     "3307",
-		DbName:   "bd_te",
+		User:     *user,
+		Password: *password,
+		Host:     *host,
+		Port:     *port,
+		DbName:   *dbname,
 	}
 }
 

@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"ollama-backend/pkg/db"
 	"ollama-backend/pkg/ollama"
+	"os"
 	"sync"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 // =========== Struct para el metodo de Respuesta ===============
@@ -55,7 +57,23 @@ type PongResponse struct {
 func main() {
 	// Inicializar servicios
 	ollamaService := ollama.NewService()
-	dbservice := db.NewService()
+
+	// Cargar variables de entorno
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalln("Error al cargar el archivo .env")
+		return
+	}
+
+	// Obtener variables de entorno
+	user := os.Getenv("USER_DB")
+	password := os.Getenv("PASSWORD")
+	host := os.Getenv("HOST")
+	port := os.Getenv("PORT")
+	dbname := os.Getenv("DB_NAME")
+
+	// Inicializar servicio de DB
+	dbservice := db.NewService(&user, &password, &host, &port, &dbname)
 
 	// Conexion con la base de datos
 	ctx, err := dbservice.ConnectDB()
