@@ -140,7 +140,7 @@ func main() {
 			wg.Add(1)
 
 			// Crear una gorouting
-			go func(modelKeyName string, currentPrompt string) {
+			go func(user string, modelKeyName string, currentPrompt string) {
 
 				//fmt.Printf("\nModelo: %s\n", modelKeyName)
 
@@ -163,7 +163,7 @@ func main() {
 					result.PromptEvalCount = content.PromptEvalCount
 					result.PromptEvalDuration = content.PromptEvalDuration
 					result.Modelo_id = content.ID
-					result.User = req.User
+					result.User = user
 				}
 				//fmt.Printf("\nTermino el modelo: %s\n", modelKeyName)
 				//fmt.Printf("\nModelo: %s ===> %s\n", modelKeyName, result.Content)
