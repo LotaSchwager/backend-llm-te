@@ -31,7 +31,7 @@ func NewService(user *string, password *string, host *string, port *string, dbna
 
 // ===================================
 
-// Tabla conversacion
+// Tabla de respuesta del modelo
 type Respuesta struct {
 	Modelo_id          int
 	Model              string
@@ -43,9 +43,10 @@ type Respuesta struct {
 	PromptEvalDuration int64
 	EvalCount          int64
 	EvalDuration       int64
+	User		   string
 }
 
-// Tabla respuesta
+// Tabla de resultado sobre la eleccion del usuario
 type Resultado struct {
 	Prompt               string `json:"prompt"`
 	Respuesta_id_1       int    `json:"respuesta_id_1"`
@@ -105,8 +106,8 @@ func (s *Service) InsertRespuesta(db *sql.DB, respuestas *[]Respuesta) (*Respons
 	query := `INSERT INTO respuesta (
 		modelo_id, model, message, done,
 		total_duration, load_duration, prompt_eval_count,
-		prompt_eval_duration, eval_count, eval_duration
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		prompt_eval_duration, eval_count, eval_duration, user_mail
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?. ?)`
 
 	stmt, err := tx.Prepare(query)
 	if err != nil {
@@ -119,7 +120,7 @@ func (s *Service) InsertRespuesta(db *sql.DB, respuestas *[]Respuesta) (*Respons
 		res, err := stmt.Exec(
 			r.Modelo_id, r.Model, r.Message, r.Done, r.TotalDuration,
 			r.LoadDuration, r.PromptEvalCount, r.PromptEvalDuration,
-			r.EvalCount, r.EvalDuration,
+			r.EvalCount, r.EvalDuration,r.User,
 		)
 		if err != nil {
 			return ids, err

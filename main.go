@@ -18,7 +18,8 @@ import (
 
 // GenerateRequest estructura para las peticiones de generación
 type GenerateRequest struct {
-	Prompt string `json:"prompt"`
+	Prompt 	string `json:"prompt"`
+	User 	string `json:"user"`
 }
 
 type ModelResult struct {
@@ -162,13 +163,14 @@ func main() {
 					result.PromptEvalCount = content.PromptEvalCount
 					result.PromptEvalDuration = content.PromptEvalDuration
 					result.Modelo_id = content.ID
+					result.User = req.User
 				}
 				//fmt.Printf("\nTermino el modelo: %s\n", modelKeyName)
 				//fmt.Printf("\nModelo: %s ===> %s\n", modelKeyName, result.Content)
 
 				// Retornar el resultado al canal
 				resultsChan <- result
-			}(modelNameCurrent, req.Prompt)
+			}(req.User, modelNameCurrent, req.Prompt)
 		}
 
 		// Esperar a que terminen las goroutines

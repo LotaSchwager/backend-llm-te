@@ -34,17 +34,17 @@ func NewService() *Service {
 		validModels: map[string]ModelConfig{
 			"qwen2.5": {
 				Path:        "hf.co/Ainxz/qwen2.5-pucv-gguf:latest",
-				Temperature: 0.4,
+				Temperature: 0.6,
 				ID:          1,
 			},
 			"llama3.2": {
 				Path:        "hf.co/Ainxz/llama3.2-pucv-gguf:latest",
-				Temperature: 0.7,
+				Temperature: 0.5,
 				ID:          2,
 			},
 			"phi3.5": {
 				Path:        "hf.co/Ainxz/phi3.5-pucv-gguf:latest",
-				Temperature: 0.6,
+				Temperature: 0.9,
 				ID:          3,
 			},
 		},
@@ -76,6 +76,7 @@ func (s *Service) GenerateResponse(modelName, prompt string) (*OllamaData, error
 	}
 
 	// Configurar las opciones del modelo
+	//fmt.Println("Temperatura de %c : %f", modelConfig.Path, modelConfig.Temperature)
 	modelOpts := llm.SetOptions(map[string]interface{}{
 		option.Temperature: modelConfig.Temperature,
 	})
