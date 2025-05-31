@@ -55,7 +55,7 @@ Se necesita un .env con ciertos valores para funcionar.
 **Response:**
 ```json
 {
-    "status": http status,
+    "status": "http status",
     "content": [{
          "model": "modelo",
          "response": "respuesta del modelo",
@@ -72,17 +72,17 @@ Se necesita un .env con ciertos valores para funcionar.
 ```json
 {
     "prompt": "el prompt del usuario",
-    "respuesta_id_1": id_1,
-    "respuesta_id_2": id_2,
-    "respuesta_id_3": id_3,
-    "respuesta_elegida_id": id elegido, debe ser uno de los 3,
+    "respuesta_id_1": "id_1",
+    "respuesta_id_2": "id_2",
+    "respuesta_id_3": "id_3",
+    "respuesta_elegida_id": "id elegido, debe ser uno de los 3",
 }
 ```
 
 **Response:**
 ```json
 {
-    "status": http status,
+    "status": "http status",
     "content": "exitoso o no"
 }
 ```
