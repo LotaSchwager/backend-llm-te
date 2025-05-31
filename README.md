@@ -9,8 +9,8 @@ Este es un backend hecho en golang para el ProyectoTE.
    - Verificacion de la instalación: `go version`
 
 2. **Instalación de Ollama**
-   - Install Ollama from https://ollama.ai/download
-   - Start Ollama service
+   - Instala ollama desde https://ollama.ai/download
+   - Inicia el servicio de Ollama con ```Ollama service```
 
 3. **Modelos requeridos**
    ```bash
