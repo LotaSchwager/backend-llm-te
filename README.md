@@ -1,78 +1,88 @@
 # Ollama Backend API
 
-This is a Go backend service that interfaces with Ollama to provide access to specific AI models.
+Este es un backend hecho en golang para el ProyectoTE.
 
-## Prerequisites
+## Prerequisitos
 
-1. **Go Installation**
-   - Install Go 1.21 or later
-   - Verify installation: `go version`
+1. **Instalación de Go**
+   - Instalar Go versión 1.21 o más actual
+   - Verificacion de la instalación: `go version`
 
-2. **Ollama Installation**
+2. **Instalación de Ollama**
    - Install Ollama from https://ollama.ai/download
    - Start Ollama service
 
-3. **Required Models**
-   Pull these models in Ollama:
+3. **Modelos requeridos**
    ```bash
    ollama pull hf.co/Ainxz/qwen2.5-pucv-gguf:latest
    ollama pull hf.co/Ainxz/llama3.2-pucv-gguf:latest
-   ollama pull hf.co/Ainxz/phi3.5-pucv-gguf:latest
+   ollama pull hf.co/Ainxz/gemma3-pucv-gguf:latest
    ```
-
+   
 ## Setup
 
-1. Clone the repository:
+1. Clonar el repositorio:
    ```bash
-   git clone <repository-url>
-   cd <repository-name>
+   git clone https://github.com/LotaSchwager/backend-llm-te
+   cd backend-llm-te
    ```
 
-2. Install dependencies:
+2. Instala las depedencias:
    ```bash
    go mod tidy
    ```
 
-3. Run the server:
+3. Ejecuta el servidor:
    ```bash
    go run main.go
    ```
 
-The server will start on port 8080.
+Se necesita un .env con ciertos valores para funcionar.
 
-## API Usage
+## Endpoints de la API
 
-### Generate Text
+### Generación de la respuesta de los modelos
 
 **Endpoint:** `POST /generate`
 
 **Request Body:**
 ```json
 {
-    "model": "phi3.5",  // or "llama3.2" or "qwen2.5"
-    "prompt": "Your prompt here"
+    "prompt": "el prompt del usuario"
 }
 ```
 
 **Response:**
 ```json
 {
-    "status": 200,
-    "content": ["Generated text response"]
+    "status": http status,
+    "content": [{
+         "model": "modelo",
+         "response": "respuesta del modelo",
+         "error": "error, si es que hay uno",
+         "id": "id de la respuesta dentro de la tabla respuesta en la base de datos"
+      }]
+}
+```
+### Guardar la decision del usuario en la base de datos
+
+**Endpoint:** `POST /save-result`
+
+**Request Body:**
+```json
+{
+    "prompt": "el prompt del usuario",
+    "respuesta_id_1": id_1,
+    "respuesta_id_2": id_2,
+    "respuesta_id_3": id_3,
+    "respuesta_elegida_id": id elegido, debe ser uno de los 3,
 }
 ```
 
-## Error Responses
-
-The API will return appropriate error messages with status codes:
-- 400: Invalid request format or model name
-- 500: Server errors or Ollama connection issues
-
-## Testing the API
-
-You can test the API using curl:
-```bash
-curl -X POST http://localhost:8080/generate \
--H "Content-Type: application/json" \
--d '{"model": "phi3.5", "prompt": "Quien es el jefe de carrera?"}'
-``` 
+**Response:**
+```json
+{
+    "status": http status,
+    "content": "exitoso o no"
+}
+```
